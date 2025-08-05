@@ -11,8 +11,9 @@ const fastify: FastifyInstance = Fastify({
 await fastify.register(FastifySwagger, {
   openapi: {
     info: {
-      title: 'OpenStrat API',
+      title: 'Open Strat: Open Finance Decision Support API',
       version: '1.0.0',
+      description: 'A comprehensive API for Multi-Criteria Decision Analysis (MCDA) methods supporting financial decision-making processes. Includes Fuzzy Hierarchical Process (FHP), Optimization algorithms, and Strategic Value Index (SVI) implementations.'
     },
     components: {
       securitySchemes: {
@@ -53,68 +54,169 @@ await fastify.register(FastifySwaggerUi, {
 await fastify.register(import('@scalar/fastify-api-reference'), {
   routePrefix: '/reference',
   configuration: {
-    title: 'OpenStrat API Reference',
+    title: 'Open Finance Decision Support API Reference',
     theme: 'purple',
   },
 })
 
-// Declare a route
+// Root redirect to reference
 fastify.get('/', async function handler (request, reply) {
-  return { hello: 'world' }
+  return reply.redirect('/reference')
 })
 
-fastify.put(
-  '/example-route/:id',
-  {
-    schema: {
-      description: 'post some data',
-      tags: ['user', 'code'],
-      summary: 'qwerty',
-      security: [{ apiKey: [] }],
-      params: {
+// FHP API endpoints
+fastify.get('/fhp', {
+  schema: {
+    description: 'Get Fuzzy Hierarchical Process (FHP) data and analysis results',
+    tags: ['fhp'],
+    summary: 'Retrieve FHP analysis information and status',
+    response: {
+      200: {
+        description: 'Successful response',
         type: 'object',
         properties: {
-          id: {
-            type: 'string',
-            description: 'user id',
-          },
-        },
-      },
-      body: {
-        type: 'object',
-        properties: {
-          hello: { type: 'string' },
-          obj: {
-            type: 'object',
-            properties: {
-              some: { type: 'string' },
-            },
-          },
-        },
-      },
-      response: {
-        201: {
-          description: 'Successful response',
-          type: 'object',
-          properties: {
-            hello: { type: 'string' },
-          },
-        },
-        default: {
-          description: 'Default response',
-          type: 'object',
-          properties: {
-            foo: { type: 'string' },
-          },
+          message: { type: 'string' },
+          data: { type: 'object' }
         },
       },
     },
   },
-  (req, reply) => {
-    const body = req.body as { hello: string }
-    reply.code(201).send({ hello: `Hello ${body.hello}` })
+}, async function handler (request, reply) {
+  return { message: 'FHP API', data: { status: 'active' } }
+})
+
+fastify.post('/fhp', {
+  schema: {
+    description: 'Create new Fuzzy Hierarchical Process (FHP) analysis for multi-criteria decision making',
+    tags: ['fhp'],
+    summary: 'Create new FHP analysis with criteria and fuzzy values',
+    body: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        value: { type: 'number' }
+      },
+      required: ['name', 'value']
+    },
+    response: {
+      201: {
+        description: 'Created successfully',
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          id: { type: 'string' }
+        },
+      },
+    },
   },
-)
+}, async function handler (request, reply) {
+  const body = request.body as { name: string; value: number }
+  reply.code(201)
+  return { message: 'FHP created', id: 'fhp_' + Date.now() }
+})
+
+// Optimization API endpoints
+fastify.get('/optimization', {
+  schema: {
+    description: 'Get multi-objective optimization data and algorithm status',
+    tags: ['optimization'],
+    summary: 'Retrieve optimization algorithms and results',
+    response: {
+      200: {
+        description: 'Successful response',
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          data: { type: 'object' }
+        },
+      },
+    },
+  },
+}, async function handler (request, reply) {
+  return { message: 'Optimization API', data: { status: 'active' } }
+})
+
+fastify.post('/optimization', {
+  schema: {
+    description: 'Execute multi-objective optimization algorithms for financial decision support',
+    tags: ['optimization'],
+    summary: 'Run optimization algorithms with custom parameters',
+    body: {
+      type: 'object',
+      properties: {
+        algorithm: { type: 'string' },
+        parameters: { type: 'object' }
+      },
+      required: ['algorithm']
+    },
+    response: {
+      201: {
+        description: 'Optimization started',
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          jobId: { type: 'string' }
+        },
+      },
+    },
+  },
+}, async function handler (request, reply) {
+  const body = request.body as { algorithm: string; parameters?: object }
+  reply.code(201)
+  return { message: 'Optimization started', jobId: 'opt_' + Date.now() }
+})
+
+// SVI API endpoints
+fastify.get('/svi', {
+  schema: {
+    description: 'Get Strategic Value Index (SVI) data and assessment results',
+    tags: ['svi'],
+    summary: 'Retrieve SVI analysis and strategic value metrics',
+    response: {
+      200: {
+        description: 'Successful response',
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          data: { type: 'object' }
+        },
+      },
+    },
+  },
+}, async function handler (request, reply) {
+  return { message: 'SVI API', data: { status: 'active' } }
+})
+
+fastify.post('/svi', {
+  schema: {
+    description: 'Create new Strategic Value Index (SVI) entry for investment opportunity assessment',
+    tags: ['svi'],
+    summary: 'Create new SVI analysis with index values and strategic metrics',
+    body: {
+      type: 'object',
+      properties: {
+        index: { type: 'string' },
+        value: { type: 'number' },
+        date: { type: 'string', format: 'date' }
+      },
+      required: ['index', 'value']
+    },
+    response: {
+      201: {
+        description: 'Created successfully',
+        type: 'object',
+        properties: {
+          message: { type: 'string' },
+          id: { type: 'string' }
+        },
+      },
+    },
+  },
+}, async function handler (request, reply) {
+  const body = request.body as { index: string; value: number; date?: string }
+  reply.code(201)
+  return { message: 'SVI created', id: 'svi_' + Date.now() }
+})
 
 // Serve an OpenAPI file
 fastify.get('/openapi.json', async (request, reply) => {
