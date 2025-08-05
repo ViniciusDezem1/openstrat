@@ -4,7 +4,7 @@ A Fastify-based API that implements various Multi-Criteria Decision Analysis (MC
 
 ## Features
 
-- **FHP (Fuzzy Hierarchical Process)**: Implemented and ready to use
+- **FAHP (Fuzzy Analytic Hierarchy Process)**: Implemented and ready to use
 - **Optimization**: Multi-objective optimization algorithms for financial decisions
 - **SVI (Strategic Value Index)**: Strategic value assessment and indexing
 
@@ -71,12 +71,12 @@ Once the server is running, you can access the API documentation at:
 
 ### Available Endpoints
 
-#### FHP (Fuzzy Hierarchical Process)
-- **Endpoint**: `/fhp`
+#### FAHP (Fuzzy Analytic Hierarchy Process)
+- **Endpoint**: `/fahp`
 - **Methods**: GET, POST
-- **Description**: Fuzzy Hierarchical Process for multi-criteria decision analysis
-- **GET**: Retrieve FHP data and status
-- **POST**: Create new FHP analysis with criteria and values
+- **Description**: Fuzzy Analytic Hierarchy Process for multi-criteria decision analysis
+- **GET**: Retrieve FAHP data and status
+- **POST**: Create new FAHP analysis with criteria and values
 
 #### Optimization
 - **Endpoint**: `/optimization`
@@ -98,12 +98,12 @@ Once the server is running, you can access the API documentation at:
 ```
 openstrat/
 ├── src/
-│   └── app.ts              # Main Fastify application
-├── dist/                   # Compiled JavaScript (generated)
-├── package.json           # Project dependencies and scripts
-├── tsconfig.json         # TypeScript configuration
-├── .gitignore           # Git ignore rules
-└── README.md           # This file
+│   └── app.ts         # Main Fastify application
+├── dist/              # Compiled JavaScript (generated)
+├── package.json       # Project dependencies and scripts
+├── tsconfig.json      # TypeScript configuration
+├── .gitignore         # Git ignore rules
+└── README.md          # This file
 ```
 
 ### Available Scripts

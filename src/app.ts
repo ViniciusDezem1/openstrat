@@ -13,7 +13,7 @@ await fastify.register(FastifySwagger, {
     info: {
       title: 'Open Strat: Open Finance Decision Support API',
       version: '1.0.0',
-      description: 'A comprehensive API for Multi-Criteria Decision Analysis (MCDA) methods supporting financial decision-making processes. Includes Fuzzy Hierarchical Process (FHP), Optimization algorithms, and Strategic Value Index (SVI) implementations.'
+      description: 'A comprehensive API for Multi-Criteria Decision Analysis (MCDA) methods supporting financial decision-making processes. Includes Fuzzy Analytic Hierarchy Process (FAHP), Optimization algorithms, and Strategic Value Index (SVI) implementations.'
     },
     components: {
       securitySchemes: {
@@ -64,12 +64,12 @@ fastify.get('/', async function handler (request, reply) {
   return reply.redirect('/reference')
 })
 
-// FHP API endpoints
-fastify.get('/fhp', {
+// FAHP API endpoints
+fastify.get('/fahp', {
   schema: {
-    description: 'Get Fuzzy Hierarchical Process (FHP) data and analysis results',
-    tags: ['fhp'],
-    summary: 'Retrieve FHP analysis information and status',
+    description: 'Get Fuzzy Analytic Hierarchy Process (FAHP) data and analysis results',
+    tags: ['fahp'],
+    summary: 'Retrieve FAHP analysis information and status',
     response: {
       200: {
         description: 'Successful response',
@@ -82,14 +82,14 @@ fastify.get('/fhp', {
     },
   },
 }, async function handler (request, reply) {
-  return { message: 'FHP API', data: { status: 'active' } }
+  return { message: 'FAHP API', data: { status: 'active' } }
 })
 
-fastify.post('/fhp', {
+fastify.post('/fahp', {
   schema: {
-    description: 'Create new Fuzzy Hierarchical Process (FHP) analysis for multi-criteria decision making',
-    tags: ['fhp'],
-    summary: 'Create new FHP analysis with criteria and fuzzy values',
+    description: 'Create new Fuzzy Analytic Hierarchy Process (FAHP) analysis for multi-criteria decision making',
+    tags: ['fahp'],
+    summary: 'Create new FAHP analysis with criteria and fuzzy values',
     body: {
       type: 'object',
       properties: {
@@ -112,7 +112,7 @@ fastify.post('/fhp', {
 }, async function handler (request, reply) {
   const body = request.body as { name: string; value: number }
   reply.code(201)
-  return { message: 'FHP created', id: 'fhp_' + Date.now() }
+  return { message: 'FAHP created', id: 'fahp_' + Date.now() }
 })
 
 // Optimization API endpoints
