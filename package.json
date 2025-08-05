@@ -1,0 +1,28 @@
+{
+  "name": "openstrat",
+  "version": "1.0.0",
+  "main": "dist/app.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/app.js",
+    "dev": "npx nodemon dist/app.js",
+    "dev:build": "tsc -p tsconfig.json --watch",
+    "dev:full": "npm run dev:build & npm run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@fastify/swagger": "^9.5.1",
+    "@fastify/swagger-ui": "^5.2.3",
+    "@scalar/fastify-api-reference": "^1.34.2",
+    "fastify": "^5.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.0",
+    "nodemon": "^3.1.10",
+    "typescript": "^5.9.2"
+  }
+}
