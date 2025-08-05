@@ -8,7 +8,8 @@
     "start": "node dist/app.js",
     "dev": "npx nodemon dist/app.js",
     "dev:build": "tsc -p tsconfig.json --watch",
-    "dev:full": "npm run dev:build & npm run dev"
+    "dev:full": "npm run dev:build & npm run dev",
+    "postinstall": "npm run build"
   },
   "keywords": [],
   "author": "",

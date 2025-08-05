@@ -127,10 +127,13 @@ await fastify.ready()
 // Run the server
 const start = async () => {
   try {
-    await fastify.listen({ port: 3000 })
-    console.log(`Fastify is now listening on http://localhost:3000`)
-    console.log(`Swagger UI available at http://localhost:3000/documentation`)
-    console.log(`Scalar API Reference available at http://localhost:3000/reference`)
+    const port = process.env.PORT || 3000
+    const host = process.env.HOST || '0.0.0.0'
+
+    await fastify.listen({ port: Number(port), host })
+    console.log(`Fastify is now listening on http://${host}:${port}`)
+    console.log(`Swagger UI available at http://${host}:${port}/documentation`)
+    console.log(`Scalar API Reference available at http://${host}:${port}/reference`)
   } catch (err) {
     fastify.log.error(err)
     process.exit(1)
