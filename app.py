@@ -62,14 +62,20 @@ def fahp_route(body: FAHPMatrixRequest):
     """
     Calculate FAHP endpoint.
     Uses the matrix from the request body.
-    Returns verbose results for each group.
+    Returns verbose results for each group, matching example.py logic.
     """
-    dataset = body.matrix  # Use the matrix from the request body
+    dataset = body.matrix
 
+    # Defensive: If matrix is missing, return error
+    if not dataset:
+        return jsonify({"error": "Matrix is required"}), 400
+
+    # Calculation (same as example.py)
     fuzzy_weights, defuzzified_weights, normalized_weights, rc = fuzzy_ahp_method(dataset)
 
     verbose = {}
 
+    # Fuzzy weights per group
     verbose["fuzzy_weights"] = []
     for i, fw in enumerate(fuzzy_weights):
         verbose["fuzzy_weights"].append({
@@ -77,6 +83,7 @@ def fahp_route(body: FAHPMatrixRequest):
             "weights": list(np.around(fw, 3))
         })
 
+    # Defuzzified weights per group
     verbose["defuzzified_weights"] = []
     for i, dw in enumerate(defuzzified_weights):
         verbose["defuzzified_weights"].append({
@@ -84,6 +91,7 @@ def fahp_route(body: FAHPMatrixRequest):
             "weight": round(dw, 3)
         })
 
+    # Normalized weights per group
     verbose["normalized_weights"] = []
     for i, nw in enumerate(normalized_weights):
         verbose["normalized_weights"].append({
@@ -91,10 +99,12 @@ def fahp_route(body: FAHPMatrixRequest):
             "weight": round(nw, 3)
         })
 
+    # Consistency ratio and message
+    threshold = 0.999
     verbose["consistency_ratio"] = round(rc, 2)
-    verbose["consistency"] = bool(rc <= 0.999)
+    verbose["consistency"] = bool(rc <= threshold)
     verbose["consistency_message"] = (
-        "Consistent" if rc <= 0.10 else "Inconsistent, the pairwise comparisons must be reviewed"
+        "Consistent" if rc <= threshold else "Inconsistent, the pairwise comparisons must be reviewed"
     )
 
     return jsonify(verbose)
