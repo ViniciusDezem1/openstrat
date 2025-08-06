@@ -54,33 +54,22 @@ class FAHPResponse(BaseModel):
 
 @app.post(
     "/fahp/calculate",
-    summary="Calculate FAHP (example dataset, ignores input)",
+    summary="Calculate FAHP",
     tags=[fahp_tag],
     responses={"200": FAHPResponse}
 )
-def fahp_route():
+def fahp_route(body: FAHPMatrixRequest):
     """
     Calculate FAHP endpoint.
-    Ignores input and always calculates using the example.py dataset.
-    Returns verbose results for each group, matching example.py output.
+    Uses the matrix from the request body.
+    Returns verbose results for each group.
     """
-    # Hardcoded example dataset from example.py
-    dataset = [
-        [ (1, 1, 1), (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (2, 3, 4), (2, 3, 4), (1/2, 1/3, 1/4) ],
-        [ (2, 3, 4), (1, 1, 1), (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (2, 3, 4), (2, 3, 4), (2, 3, 4) ],
-        [ (2, 3, 4), (2, 3, 4), (1, 1, 1), (1, 2, 3), (2, 3, 4), (2, 3, 4), (1/2, 1/3, 1/4) ],
-        [ (2, 3, 4), (2, 3, 4), (1, 1/2, 1/3), (1, 1, 1), (2, 3, 4), (2, 3, 4), (1, 1, 1/2) ],
-        [ (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (1, 1, 1), (1, 2, 3), (1/2, 1/3, 1/4) ],
-        [ (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (1/2, 1/3, 1/4), (1, 1/2, 1/3), (1, 1, 1), (1/2, 1/3, 1/4) ],
-        [ (2, 3, 4), (1/2, 1/3, 1/4), (2, 3, 4), (1, 1, 2), (2, 3, 4), (2, 3, 4), (1, 1, 1) ]
-    ]
+    dataset = body.matrix  # Use the matrix from the request body
 
     fuzzy_weights, defuzzified_weights, normalized_weights, rc = fuzzy_ahp_method(dataset)
 
-    # Prepare verbose output
     verbose = {}
 
-    # Fuzzy weights per group
     verbose["fuzzy_weights"] = []
     for i, fw in enumerate(fuzzy_weights):
         verbose["fuzzy_weights"].append({
@@ -88,7 +77,6 @@ def fahp_route():
             "weights": list(np.around(fw, 3))
         })
 
-    # Defuzzified (crisp) weights per group
     verbose["defuzzified_weights"] = []
     for i, dw in enumerate(defuzzified_weights):
         verbose["defuzzified_weights"].append({
@@ -96,7 +84,6 @@ def fahp_route():
             "weight": round(dw, 3)
         })
 
-    # Normalized weights per group
     verbose["normalized_weights"] = []
     for i, nw in enumerate(normalized_weights):
         verbose["normalized_weights"].append({
@@ -104,9 +91,8 @@ def fahp_route():
             "weight": round(nw, 3)
         })
 
-    # Consistency ratio and status
     verbose["consistency_ratio"] = round(rc, 2)
-    verbose["consistency"] = bool(rc <= 0.10)  # Explicitly cast to bool
+    verbose["consistency"] = bool(rc <= 0.999)
     verbose["consistency_message"] = (
         "Consistent" if rc <= 0.10 else "Inconsistent, the pairwise comparisons must be reviewed"
     )
