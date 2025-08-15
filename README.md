@@ -1,118 +1,125 @@
-# Open Finance Decision Support API
+# MCDA Decision Support API
 
-A Flask-based API that implements various Multi-Criteria Decision Analysis (MCDA) methods to support financial decision-making processes.
+A Flask-based API for Multi-Criteria Decision Analysis (MCDA) with a focus on Fuzzy Analytic Hierarchy Process (FAHP) and Pareto optimality analysis. The API provides endpoints for analyzing criteria weights, comparing strategies, and scenario analysis using multi-criteria data, with comprehensive narrative summaries and interactive OpenAPI (Scalar) documentation UI.
 
 ## Features
 
-- **FAHP (Fuzzy Analytic Hierarchy Process)**: Implemented and ready to use
-- **MCDA (Multi-Criteria Decision Analysis)**: Work in Progress
-- **ER (Evidential Reasoning)**: Work in Progress
+- **Fuzzy Analytic Hierarchy Process (FAHP)**: Determine criteria importance weights using fuzzy pairwise comparisons with consistency validation.
+- **Pareto Optimality Analysis**: Identify Pareto optimal and non-optimal tasks based on strategic score, time, and cost.
+- **Strategy Comparison**: Compare two strategies side-by-side, including detailed task-level and overall metrics.
+- **Multi-Scenario Analysis**: Analyze multiple scenarios, generate comprehensive summaries, and compare performance across scenarios.
+- **Narrative Summaries**: Rich textual explanations of analysis results for better decision-making insights.
+- **OpenAPI Documentation**: Interactive Scalar UI available at `/openapi/scalar`.
 
-## Prerequisites
+## API Endpoints
 
-- Python 3.8 or higher
-- pip (Python package manager)
+### FAHP Analysis
+- `POST /fahp/calculate`: Calculate FAHP weights for criteria using fuzzy pairwise comparisons.
+
+### Strategy Analysis & Comparison
+- `POST /sorting/calculate`: Analyze a single strategy and return Pareto optimality results with narrative summary.
+- `POST /sorting/compare`: Compare two strategies and return detailed comparison results with recommendations.
+- `POST /sorting/scenarios`: Analyze multiple scenarios and return comprehensive summaries and comparison matrices.
+
+### Documentation
+- `GET /openapi/scalar`: Access the Scalar OpenAPI documentation UI.
+- **Production URL**: [https://openstrat-production.up.railway.app/openapi/scalar](https://openstrat-production.up.railway.app/openapi/scalar)
+
+## Example Requests
+
+### FAHP Analysis
+```json
+POST /fahp/calculate
+{
+  "matrix": [
+    [[1, 1, 1], [0.5, 0.333, 0.25], [0.5, 0.333, 0.25]],
+    [[2, 3, 4], [1, 1, 1], [0.5, 0.333, 0.25]],
+    [[2, 3, 4], [2, 3, 4], [1, 1, 1]]
+  ],
+  "criteria_names": ["g1", "g2", "g3"]
+}
+```
+
+### Strategy Analysis
+```json
+POST /sorting/calculate
+{
+  "tasks": [
+    {"name": "Automated Robo-Advisory", "score": 1.94, "time": 6.0, "cost": 5.0},
+    {"name": "Product Visibility", "score": 2.3, "time": 3.0, "cost": 2.0}
+  ],
+  "weights": {"w_time": 1.05, "w_cost": 1.05}
+}
+```
+
+### Strategy Comparison
+```json
+POST /sorting/compare
+{
+  "strategy_1_dataset_1": {
+    "tasks": [
+      {"name": "Task A", "score": 1.94, "time": 6.0, "cost": 5.0}
+    ],
+    "weights": {"w_time": 1.05, "w_cost": 1.05}
+  },
+  "strategy_2_dataset_2": {
+    "tasks": [
+      {"name": "Task A", "score": 1.94, "time": 4.0, "cost": 4.0}
+    ],
+    "weights": {"w_time": 1.0, "w_cost": 1.0}
+  }
+}
+```
 
 ## Installation
 
 1. Clone the repository:
-```bash
-git clone https://github.com/ViniciusDezem1/openfinancedecision.git
-cd openfinancedecision
-```
+    ```sh
+    git clone https://github.com/yourusername/yourrepo.git
+    cd yourrepo
+    ```
 
-2. Create and activate a virtual environment (recommended):
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows, use: venv\Scripts\activate
-```
+2. (Recommended) Create and activate a virtual environment:
+    ```sh
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```
 
-3. Install the required dependencies:
-```bash
-pip install -r requirements.txt
-```
+3. Install dependencies:
+    ```sh
+    pip install -r requirements.txt
+    ```
 
 ## Running the Application
 
-The application can be run in two ways:
+You can run the API locally with:
 
-1. Using Flask CLI (recommended):
-```bash
+```sh
 flask --app app run
 ```
 
-The API will be available at `http://127.0.0.1:5000/openapi/scalar`
+Or, using Gunicorn (recommended for production):
 
-### Environment Variables
-
-You can configure the application using environment variables:
-
-```bash
-export FLASK_APP=app.py
-export FLASK_ENV=development  # For development mode
-export FLASK_DEBUG=1         # Enable debug mode
+```sh
+gunicorn app:app
 ```
 
-## API Documentation
+The Scalar UI will be available at [http://127.0.0.1:5000/openapi/scalar](http://127.0.0.1:5000/openapi/scalar).
 
-Once the server is running, you can access the OpenAPI documentation at:
-- Swagger UI: `http://127.0.0.1:5000/openapi/scalar`
-- ReDoc: `http://127.0.0.1:5000/openapi/scalar`
+**Production API**: [https://openstrat-production.up.railway.app/openapi/scalar](https://openstrat-production.up.railway.app/openapi/scalar)
 
-### Available Endpoints
+## Deployment
 
-#### FAHP (Fuzzy Analytic Hierarchy Process)
-- **Endpoint**: `/fahp/calculate`
-- **Method**: POST
-- **Description**: Calculates weights using the Fuzzy Analytic Hierarchy Process method
-- **Request Body**:
-  ```json
-  {
-    "criteria": ["criterion1", "criterion2", ...],
-    "fuzzy_matrix": [
-      [1, 1, 1, 1, 1, 1],
-      [1/3, 1/2, 1, 1, 1, 1],
-      ...
-    ]
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "weights": [0.25, 0.35, ...],
-    "consistency_ratio": 0.05
-  }
-  ```
+To deploy using Nixpacks or similar platforms, ensure your [nixpacks.toml](nixpacks.toml) contains:
 
-#### MCDA (Multi-Criteria Decision Analysis)
-- **Status**: Work in Progress
-- **Endpoint**: `/mcda/calculate`
-- **Method**: POST
-
-#### ER (Evidential Reasoning)
-- **Status**: Work in Progress
-- **Endpoint**: `/er/calculate`
-- **Method**: POST
-
-## Development
-
-### Project Structure
-```
-openfinancedecision/
-├── app.py              # Main Flask application
-├── fahp.py            # FAHP implementation
-├── mcda.py            # MCDA implementation (WIP)
-├── er.py              # ER implementation (WIP)
-├── requirements.txt   # Project dependencies
-└── README.md         # This file
+```toml
+[start]
+cmd = "gunicorn app:app"
 ```
 
-### Adding New Methods
+Set the `PORT` environment variable if needed (defaults to 3000).
 
-To add a new MCDA method:
-1. Create a new Python file for the method implementation
-2. Define the request and response models using Pydantic
-3. Implement the calculation logic
-4. Add the route to `app.py`
-5. Update the OpenAPI documentation
+---
+
+For more details on the API request/response models, see the Scalar UI or review the source code.
 

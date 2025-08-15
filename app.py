@@ -7,11 +7,10 @@ from flask_openapi3 import Info, OpenAPI, Tag
 from pydantic import BaseModel, Field
 from pyDecision.algorithm import fuzzy_ahp_method
 
-from er import ERRequest, calculate_er
-from mcda import MCDARequest, calculate_mcda
 from sorting import (
-    SortingRequest, SortingResponse, StrategyComparisonRequest, StrategyComparisonResponse,
-    analyze_strategy, compare_strategies
+    SortingRequest, SortingResponse, ScenariosRequest, ScenariosResponse,
+    StrategyComparisonRequest, StrategyComparisonResponse,
+    analyze_strategy, analyze_scenarios, compare_strategies, generate_single_strategy_summary
 )
 
 info = Info(title="MCDA Decision Support API", version="1.0.0")
@@ -19,8 +18,6 @@ app = OpenAPI(__name__, info=info)
 
 # Define tags
 fahp_tag = Tag(name="fahp", description="Fuzzy Analytic Hierarchy Process")
-mcda_tag = Tag(name="mcda", description="Multi-Criteria Decision Analysis")
-er_tag = Tag(name="er", description="Evidential Reasoning")
 sorting_tag = Tag(name="sorting", description="Pareto Optimality and Strategy Comparison")
 
 
@@ -149,23 +146,42 @@ def fahp_route(body: FAHPMatrixRequest):
         "Consistent" if rc <= threshold else "Inconsistent, the pairwise comparisons must be reviewed"
     )
 
+    # Generate narrative summary
+    total_criteria = len(dataset)
+    best_criterion = max(verbose["normalized_weights"], key=lambda x: x["weight"])
+    worst_criterion = min(verbose["normalized_weights"], key=lambda x: x["weight"])
+
+    narrative = f"""
+    Fuzzy Analytic Hierarchy Process (FAHP) Analysis Summary:
+
+    This analysis evaluated {total_criteria} criteria using fuzzy pairwise comparisons to determine their relative importance weights.
+    The FAHP method incorporates uncertainty in decision-making through triangular fuzzy numbers.
+
+    Key Results:
+    • Total Criteria Analyzed: {total_criteria}
+    • Most Important Criterion: {best_criterion['group']} (Weight: {best_criterion['weight']:.3f})
+    • Least Important Criterion: {worst_criterion['group']} (Weight: {worst_criterion['weight']:.3f})
+    • Consistency Ratio: {verbose['consistency_ratio']:.2f} {'(Consistent)' if verbose['consistency'] else '(Inconsistent)'}
+
+    Weight Distribution:
+    """
+
+    # Add weight distribution
+    for weight_info in verbose["normalized_weights"]:
+        narrative += f"• {weight_info['group']}: {weight_info['weight']:.3f} ({weight_info['weight']*100:.1f}%)\n"
+
+    narrative += f"""
+
+    Analysis Quality:
+    • Consistency Status: {'✓ Consistent - Results are reliable' if verbose['consistency'] else '✗ Inconsistent - Review pairwise comparisons'}
+    • Fuzzy Weights: Represent uncertainty ranges for each criterion
+    • Defuzzified Weights: Single values for practical decision-making
+    • Normalized Weights: Sum to 1.0 for relative importance assessment
+    """
+
+    verbose["narrative_summary"] = narrative.strip()
+
     return jsonify(verbose)
-
-
-@app.post("/mcda/calculate", summary="Calculate MCDA", tags=[mcda_tag])
-def mcda_route(request: MCDARequest):
-    """
-    Calculate MCDA endpoint.
-    """
-    return calculate_mcda(request)
-
-
-@app.post("/er/calculate", summary="Calculate ER", tags=[er_tag])
-def er_route(request: ERRequest):
-    """
-    Calculate ER endpoint.
-    """
-    return calculate_er(request)
 
 
 @app.post(
@@ -180,6 +196,7 @@ def sorting_route(body: SortingRequest):
     Uses the tasks and weights from the request body.
 
     Example request body:
+
     ```json
     {
       "tasks": [
@@ -204,7 +221,13 @@ def sorting_route(body: SortingRequest):
     pareto_results, non_pareto_results, min_score, max_score, avg_time, total_cost, strategic_index = analyze_strategy(
         dataset, weights)
 
+    # Generate summary
+    summary = generate_single_strategy_summary(pareto_results, non_pareto_results, min_score, max_score, avg_time, total_cost, strategic_index)
+
     verbose = {}
+
+    # Summary
+    verbose["summary"] = summary
 
     # Pareto optimal tasks
     verbose["pareto_optimal_tasks"] = pareto_results
@@ -234,6 +257,7 @@ def sorting_compare_route(body: StrategyComparisonRequest):
     Based on the full workflow from Sorting_Algo_phase3backup.py
 
     Example request body:
+
     ```json
     {
       "strategy_1_dataset_1": {
@@ -269,6 +293,62 @@ def sorting_compare_route(body: StrategyComparisonRequest):
 
     # Calculate comparison
     result = compare_strategies(strategy_1_data, strategy_2_data)
+
+    return jsonify(result)
+
+
+@app.post(
+    "/sorting/scenarios",
+    summary="Analyze Multiple Scenarios",
+    tags=[sorting_tag],
+    responses={"200": ScenariosResponse}
+)
+def sorting_scenarios_route(body: ScenariosRequest):
+    """
+    Analyze multiple scenarios using Pareto optimality and multi-criteria decision analysis.
+    Based on the full workflow from Sorting_Algo_phase3backup.py
+
+    Example request body:
+    ```json
+    {
+      "scenarios": [
+        {
+          "name": "Strategy 1 - Dataset 1",
+          "description": "In-house approach with original data",
+          "tasks": [
+            {"name": "Automated Robo-Advisory", "score": 1.94, "time": 6.0, "cost": 5.0},
+            {"name": "Product Visibility", "score": 2.3, "time": 3.0, "cost": 2.0},
+            ...
+          ],
+          "weights": {"w_time": 1.05, "w_cost": 1.05}
+        },
+        {
+          "name": "Strategy 2 - Dataset 2",
+          "description": "Outsource approach with modified data",
+          "tasks": [
+            {"name": "Automated Robo-Advisory", "score": 1.94, "time": 4.0, "cost": 4.0},
+            {"name": "Product Visibility", "score": 2.3, "time": 3.0, "cost": 2.0},
+            ...
+          ],
+          "weights": {"w_time": 1.0, "w_cost": 1.0}
+        }
+      ]
+    }
+    ```
+
+    Returns comprehensive analysis including:
+    - Individual scenario results (Pareto optimal tasks, metrics)
+    - Cross-scenario comparison matrix
+    - Overall performance metrics for all scenarios
+    """
+    scenarios_data = body.scenarios
+
+    # Defensive: If scenarios are missing, return error
+    if not scenarios_data:
+        return jsonify({"error": "Scenarios are required"}), 400
+
+    # Calculate scenarios analysis
+    result = analyze_scenarios({"scenarios": scenarios_data})
 
     return jsonify(result)
 
