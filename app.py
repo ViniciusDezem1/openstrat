@@ -1,18 +1,18 @@
-# -*- coding: utf-8 -*-
-from pydantic import BaseModel
-from typing import List, Tuple, Dict, Optional, Any
 import os
+from typing import Any, List, Optional, Tuple
 
-from flask_openapi3 import Info, Tag
-from flask_openapi3 import OpenAPI
-from flask import jsonify
-from pyDecision.algorithm import fuzzy_ahp_method
 import numpy as np
+from flask import jsonify, redirect
+from flask_openapi3 import Info, OpenAPI, Tag
+from pydantic import BaseModel, Field
+from pyDecision.algorithm import fuzzy_ahp_method
 
-# Import the calculation functions and schemas from other files
-from fahp import calculate_fahp, FAHPRequest, FAHPResponse
-from mcda import calculate_mcda, MCDARequest
-from er import calculate_er, ERRequest
+from er import ERRequest, calculate_er
+from mcda import MCDARequest, calculate_mcda
+from sorting import (
+    SortingRequest, SortingResponse, StrategyComparisonRequest, StrategyComparisonResponse,
+    analyze_strategy, compare_strategies
+)
 
 info = Info(title="MCDA Decision Support API", version="1.0.0")
 app = OpenAPI(__name__, info=info)
@@ -21,14 +21,15 @@ app = OpenAPI(__name__, info=info)
 fahp_tag = Tag(name="fahp", description="Fuzzy Analytic Hierarchy Process")
 mcda_tag = Tag(name="mcda", description="Multi-Criteria Decision Analysis")
 er_tag = Tag(name="er", description="Evidential Reasoning")
+sorting_tag = Tag(name="sorting", description="Pareto Optimality and Strategy Comparison")
 
 
 @app.get("/", summary="Health check", tags=[])
 def root():
     """
-    Health check endpoint that returns a scalar string.
+    Redirects to the OpenAPI documentation.
     """
-    return "OK"
+    return redirect("/openapi/scalar")
 
 
 @app.get("/open-finance", summary="OpenAPI Spec", tags=[])
@@ -39,9 +40,38 @@ def open_finance():
     return jsonify(app.openapi())
 
 
+fahp_example = {
+    "matrix": [
+        [[1, 1, 1], [0.5, 0.333, 0.25], [0.5, 0.333, 0.25], [
+            0.5, 0.333, 0.25], [2, 3, 4], [2, 3, 4], [0.5, 0.333, 0.25]],
+        [[2, 3, 4], [1, 1, 1], [0.5, 0.333, 0.25], [
+            0.5, 0.333, 0.25], [2, 3, 4], [2, 3, 4], [2, 3, 4]],
+        [[2, 3, 4], [2, 3, 4], [1, 1, 1], [1, 2, 3], [
+            2, 3, 4], [2, 3, 4], [0.5, 0.333, 0.25]],
+        [[2, 3, 4], [2, 3, 4], [1, 0.5, 0.333], [
+            1, 1, 1], [2, 3, 4], [2, 3, 4], [1, 1, 0.5]],
+        [[0.5, 0.333, 0.25], [0.5, 0.333, 0.25], [0.5, 0.333, 0.25], [
+            0.5, 0.333, 0.25], [1, 1, 1], [1, 2, 3], [0.5, 0.333, 0.25]],
+        [[0.5, 0.333, 0.25], [0.5, 0.333, 0.25], [0.5, 0.333, 0.25], [
+            0.5, 0.333, 0.25], [1, 0.5, 0.333], [1, 1, 1], [0.5, 0.333, 0.25]],
+        [[2, 3, 4], [0.5, 0.333, 0.25], [2, 3, 4], [
+            1, 1, 2], [2, 3, 4], [2, 3, 4], [1, 1, 1]]
+    ],
+    "criteria_names": [
+        "g1", "g2", "g3", "g4", "g5", "g6", "g7"
+    ]
+}
+
+
 class FAHPMatrixRequest(BaseModel):
-    matrix: Optional[List[List[Any]]] = None
-    criteria_names: Optional[List[str]] = None
+    matrix: List[List[Any]] = Field(
+        default=fahp_example["matrix"],
+        description="Fuzzy comparison matrix where each element is [lower, middle, upper]"
+    )
+    criteria_names: Optional[List[str]] = Field(
+        default=fahp_example["criteria_names"],
+        description="Names of the criteria being compared"
+    )
 
 
 class FAHPResponse(BaseModel):
@@ -62,6 +92,17 @@ def fahp_route(body: FAHPMatrixRequest):
     """
     Calculate FAHP endpoint.
     Uses the matrix from the request body.
+
+    Example request body:
+    ```json
+    {
+      "matrix": [
+        [ [1, 1, 1], [0.5, 0.333, 0.25], ... ],
+      ],
+      "criteria_names": null
+    }
+    ```
+
     Returns verbose results for each group, matching example.py logic.
     """
     dataset = body.matrix
@@ -71,7 +112,8 @@ def fahp_route(body: FAHPMatrixRequest):
         return jsonify({"error": "Matrix is required"}), 400
 
     # Calculation (same as example.py)
-    fuzzy_weights, defuzzified_weights, normalized_weights, rc = fuzzy_ahp_method(dataset)
+    fuzzy_weights, defuzzified_weights, normalized_weights, rc = fuzzy_ahp_method(
+        dataset)
 
     verbose = {}
 
@@ -124,6 +166,111 @@ def er_route(request: ERRequest):
     Calculate ER endpoint.
     """
     return calculate_er(request)
+
+
+@app.post(
+    "/sorting/calculate",
+    summary="Calculate Sorting",
+    tags=[sorting_tag],
+    responses={"200": SortingResponse}
+)
+def sorting_route(body: SortingRequest):
+    """
+    Calculate Sorting endpoint.
+    Uses the tasks and weights from the request body.
+
+    Example request body:
+    ```json
+    {
+      "tasks": [
+        {"name": "Automated Robo-Advisory", "score": 1.94, "time": 6.0, "cost": 5.0},
+        {"name": "Product Visibility", "score": 2.3, "time": 3.0, "cost": 2.0},
+        ...
+      ],
+      "weights": {"w_time": 1.05, "w_cost": 1.05}
+    }
+    ```
+
+    Returns verbose results for Pareto optimality analysis, matching Sorting_Algo_phase3backup.py logic.
+    """
+    dataset = body.tasks
+    weights = body.weights
+
+    # Defensive: If tasks are missing, return error
+    if not dataset:
+        return jsonify({"error": "Tasks are required"}), 400
+
+    # Calculation (same as Sorting_Algo_phase3backup.py)
+    pareto_results, non_pareto_results, min_score, max_score, avg_time, total_cost, strategic_index = analyze_strategy(
+        dataset, weights)
+
+    verbose = {}
+
+    # Pareto optimal tasks
+    verbose["pareto_optimal_tasks"] = pareto_results
+
+    # Non-Pareto tasks
+    verbose["non_pareto_tasks"] = non_pareto_results
+
+    # Metrics
+    verbose["min_possible_score"] = round(min_score, 2)
+    verbose["max_possible_score"] = round(max_score, 2)
+    verbose["average_time"] = round(avg_time, 2)
+    verbose["total_cost"] = round(total_cost, 2)
+    verbose["strategic_value_index"] = round(strategic_index, 2)
+
+    return jsonify(verbose)
+
+
+@app.post(
+    "/sorting/compare",
+    summary="Compare Multiple Strategies",
+    tags=[sorting_tag],
+    responses={"200": StrategyComparisonResponse}
+)
+def sorting_compare_route(body: StrategyComparisonRequest):
+    """
+    Compare multiple strategies using Pareto optimality and multi-criteria decision analysis.
+    Based on the full workflow from Sorting_Algo_phase3backup.py
+
+    Example request body:
+    ```json
+    {
+      "strategy_1_dataset_1": {
+        "tasks": [
+          {"name": "Automated Robo-Advisory", "score": 1.94, "time": 6.0, "cost": 5.0},
+          {"name": "Product Visibility", "score": 2.3, "time": 3.0, "cost": 2.0},
+          ...
+        ],
+        "weights": {"w_time": 1.05, "w_cost": 1.05}
+      },
+      "strategy_2_dataset_2": {
+        "tasks": [
+          {"name": "Automated Robo-Advisory", "score": 1.94, "time": 4.0, "cost": 4.0},
+          {"name": "Product Visibility", "score": 2.3, "time": 3.0, "cost": 2.0},
+          ...
+        ],
+        "weights": {"w_time": 1.0, "w_cost": 1.0}
+      }
+    }
+    ```
+
+    Returns comprehensive comparison including:
+    - Individual strategy analysis (Pareto optimal tasks, metrics)
+    - Side-by-side task comparison with score differences
+    - Overall strategy metrics comparison
+    """
+    strategy_1_data = body.strategy_1_dataset_1
+    strategy_2_data = body.strategy_2_dataset_2
+
+    # Defensive: If data is missing, return error
+    if not strategy_1_data or not strategy_2_data:
+        return jsonify({"error": "Both strategy datasets are required"}), 400
+
+    # Calculate comparison
+    result = compare_strategies(strategy_1_data, strategy_2_data)
+
+    return jsonify(result)
 
 
 if __name__ == "__main__":
