@@ -1,5 +1,6 @@
-import numpy as np
 from typing import List
+
+import numpy as np
 from pydantic import BaseModel, Field
 
 # Example data following the EXACT same pattern as FAHP in app.py
@@ -208,7 +209,7 @@ def generate_single_strategy_summary(pareto_results, non_pareto_results, min_sco
         "analysis_overview": {
             "total_tasks_analyzed": total_tasks,
             "analysis_method": "Pareto Optimality with Multi-Criteria Decision Analysis",
-            "scoring_formula": "SVI = -normalized_score + w_time * normalized_time + w_cost * normalized_cost"
+            "scoring_formula": "SVI = normalized_score + w_time * (-normalized_time) + w_cost * (-normalized_cost)"
         },
         "narrative_summary": narrative.strip(),
         "strategy_performance": {
@@ -291,17 +292,18 @@ def analyze_strategy(tasks, weights):
     normalized_times = (times - times.min()) / (times.max() - times.min())
     normalized_costs = (costs - costs.min()) / (costs.max() - costs.min())
 
-    # Assigning weights and combining scores (corrected formula from phase3backup)
-    combined_scores_pareto = [(idx, -(normalized_scores[idx]) + w_time * (normalized_times[idx]) + w_cost * (normalized_costs[idx])) for idx in pareto_tasks]
-    combined_scores_non_pareto = [(idx, -(normalized_scores[idx]) + w_time * (normalized_times[idx]) + w_cost * (normalized_costs[idx])) for idx in non_pareto_tasks]
+    # Assigning weights and combining scores (corrected formula from phase_3.py)
+    # Score should be positive, time and cost should be negative deflators
+    combined_scores_pareto = [(idx, (normalized_scores[idx]) + w_time * (-normalized_times[idx]) + w_cost * (-normalized_costs[idx])) for idx in pareto_tasks]
+    combined_scores_non_pareto = [(idx, (normalized_scores[idx]) + w_time * (-normalized_times[idx]) + w_cost * (-normalized_costs[idx])) for idx in non_pareto_tasks]
 
     # Sorting the tasks
     sorted_pareto_tasks = sorted(combined_scores_pareto, key=lambda x: x[1], reverse=True)
     sorted_non_pareto_tasks = sorted(combined_scores_non_pareto, key=lambda x: x[1], reverse=True)
 
-    # Calculate theoretical minimum and maximum scores (corrected from phase3backup)
-    min_score = 0 + w_time * (1) + w_cost * (1)  # Theoretical minimum score
-    max_score = -1 + w_time * (0) + w_cost * (0)  # Theoretical maximum score
+    # Calculate theoretical minimum and maximum scores (corrected from phase_3.py)
+    min_score = 0 + w_time * (-1) + w_cost * (-1)  # Theoretical minimum score (worst preference score, highest time and cost)
+    max_score = 1 + w_time * (0) + w_cost * (0)  # Theoretical maximum score (best preference score, lowest time and cost)
 
     # Create Pareto results
     pareto_results = []
@@ -348,7 +350,7 @@ def generate_summary(scenario_results, comparison):
             "total_scenarios_analyzed": len(scenario_results),
             "total_tasks_analyzed": len(comparison),
             "analysis_method": "Pareto Optimality with Multi-Criteria Decision Analysis",
-            "scoring_formula": "SVI = -normalized_score + w_time * normalized_time + w_cost * normalized_cost"
+            "scoring_formula": "SVI = normalized_score + w_time * (-normalized_time) + w_cost * (-normalized_cost)"
         },
         "narrative_summary": "",
         "key_findings": [],

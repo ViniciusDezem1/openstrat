@@ -1,5 +1,5 @@
 import os
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 
 import numpy as np
 from flask import jsonify, redirect
@@ -8,9 +8,16 @@ from pydantic import BaseModel, Field
 from pyDecision.algorithm import fuzzy_ahp_method
 
 from sorting import (
-    SortingRequest, SortingResponse, ScenariosRequest, ScenariosResponse,
-    StrategyComparisonRequest, StrategyComparisonResponse,
-    analyze_strategy, analyze_scenarios, compare_strategies, generate_single_strategy_summary
+    ScenariosRequest,
+    ScenariosResponse,
+    SortingRequest,
+    SortingResponse,
+    StrategyComparisonRequest,
+    StrategyComparisonResponse,
+    analyze_scenarios,
+    analyze_strategy,
+    compare_strategies,
+    generate_single_strategy_summary,
 )
 
 info = Info(title="MCDA Decision Support API", version="1.0.0")
